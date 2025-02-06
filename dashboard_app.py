@@ -61,12 +61,22 @@ AgGrid(df_pm_needs, height=400, update_mode=GridUpdateMode.SELECTION_CHANGED)
 st.subheader("Quality Tickets")
 AgGrid(df_quality_tickets, height=400, update_mode=GridUpdateMode.SELECTION_CHANGED)
 
+#jeep model 1 stl file comes from pritables https://www.printables.com/model/191461-scx24-jeep-wrangler-body/files
+#jeep model 2 stl file comes from https://www.printables.com/model/417126-jeep/files
+#defines jeep model 1 and jeep model 2 files from file path
+JeepModel1 = 'JeepModel1.stl'
+JeepModel2 = 'JeepModel2.stl'
+#Mapping the dropwdown to the file path for jeep models
+options = {
+        "Jeep Model 1": JeepModel1,
+        "Jeep Model 2": JeepModel2
+}
 
-
+#referenced https://github.com/Lucandia/streamlit_stl for library and documentation
 #display STL file
 st.subheader("Jeep Model 1")
-#create 5 columns for color, material, auto rotation, opacity, and height
-cols = st.columns(5)
+#create 6 columns for color, material, auto rotation, opacity, height, and STL file
+cols = st.columns(6)
 with cols[0]:
         color = st.color_picker("Pick a color", "#FF9900", key='color_file')
 with cols[1]:
@@ -78,6 +88,9 @@ with cols[3]:
         opacity = st.slider("Opacity", min_value=0.0, max_value=1.0, value=1.0, key='opacity_file')
 with cols[4]:
         height = st.slider("Height", min_value=50, max_value=1000, value=500, key='height_file')
+#asks user which jeep model they would like to view
+with cols[5]:
+        STLfile = st.selectbox("Select Jeep Model", list(options.keys()))
 
 # camera position can be used to give the user the ability to change the view of the model
 cols = st.columns(4)
@@ -90,11 +103,9 @@ with cols[2]:
 with cols[3]:
         max_view_distance = st.number_input("Max view distance", min_value=1, value=1000, key='max_view_distance')
 
-
-#upload STL file from file path
-#referenced https://github.com/Lucandia/streamlit_stl for library and documentation
-#stl file comes from pritables https://www.printables.com/model/191461-scx24-jeep-wrangler-body/files
-stl_from_file(  file_path='Jeep_Wrangler.stl', 
+#sets "selected_jeep_model" variable as the file path of the selected model.
+selected_jeep_model = options[STLfile]
+stl_from_file(  file_path= selected_jeep_model, 
                 color=color,
                 material=material,
                 auto_rotate=auto_rotate,
@@ -105,4 +116,4 @@ stl_from_file(  file_path='Jeep_Wrangler.stl',
                 cam_h_angle=cam_h_angle,
                 cam_distance=cam_distance,
                 max_view_distance=max_view_distance,
-                key='jeepmodel1')
+                key='jeepmodel')
