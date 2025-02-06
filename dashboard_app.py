@@ -3,13 +3,13 @@
 #!pip install SQLAlchemy
 #!pip install streamlit 
 #!pip install streamlit-aggrid
-#!pip install streamlit_stl ##kareem edit
+#!pip install streamlit_stl
 
 from sqlalchemy import create_engine
 import pandas as pd
 import streamlit as st
 from st_aggrid import AgGrid, GridOptionsBuilder, DataReturnMode, GridUpdateMode
-from streamlit_stl import stl_from_file ##kareem edit
+from streamlit_stl import stl_from_text, stl_from_file
  
 # Database connection details
 user = 'postgres'
@@ -66,6 +66,7 @@ AgGrid(df_quality_tickets, height=400, update_mode=GridUpdateMode.SELECTION_CHAN
 #defines jeep model 1 and jeep model 2 files from file path
 JeepModel1 = 'JeepModel1.stl'
 JeepModel2 = 'JeepModel2.stl'
+
 #Mapping the dropwdown to the file path for jeep models
 options = {
         "Jeep Model 1": JeepModel1,
@@ -105,15 +106,55 @@ with cols[3]:
 
 #sets "selected_jeep_model" variable as the file path of the selected model.
 selected_jeep_model = options[STLfile]
-stl_from_file(  file_path= selected_jeep_model, 
-                color=color,
-                material=material,
-                auto_rotate=auto_rotate,
-                opacity=opacity,
-                height=height,
-                shininess=100,
-                cam_v_angle=cam_v_angle,
-                cam_h_angle=cam_h_angle,
-                cam_distance=cam_distance,
-                max_view_distance=max_view_distance,
-                key='jeepmodel')
+stl_from_file(  
+    file_path= selected_jeep_model, 
+    color=color,
+    material=material,
+    auto_rotate=auto_rotate,
+    opacity=opacity,
+    height=height,
+    shininess=100,
+    cam_v_angle=cam_v_angle,
+    cam_h_angle=cam_h_angle,
+    cam_distance=cam_distance,
+    max_view_distance=max_view_distance,
+    key='jeepmodel')
+
+#this provides the option to drag and drop a STL file rather than using the ones provided.   
+file_input = st.file_uploader("Or upload a STL file ", type=["stl"])
+
+cols = st.columns(5)
+with cols[0]:
+    color = st.color_picker("Pick a color", "#0099FF", key='color_text')
+with cols[1]:
+    material = st.selectbox("Select a material", ["material", "flat", "wireframe"], key='material_text')
+with cols[2]:
+    st.write('\n'); st.write('\n')
+    auto_rotate = st.toggle("Auto rotation", key='auto_rotate_text')
+with cols[3]:
+    opacity = st.slider("Opacity", min_value=0.0, max_value=1.0, value=1.0, key='opacity_text')
+with cols[4]:
+    height = st.slider("Height", min_value=50, max_value=1000, value=500, key='height_text')
+
+cols = st.columns(4)
+with cols[0]:
+    cam_v_angle = st.number_input("Camera Vertical Angle", value=60, key='cam_v_angle_text')
+with cols[1]:
+    cam_h_angle = st.number_input("Camera Horizontal Angle", value=0, key='cam_h_angle_text')
+with cols[2]:
+    cam_distance = st.number_input("Camera Distance", value=0, key='cam_distance_text')
+with cols[3]:
+    max_view_distance = st.number_input("Max view distance", min_value=1, value=1000, key='max_view_distance_text')
+
+if file_input:
+    stl_from_text(  text=file_input.getvalue(), 
+                    color=color,
+                    material=material,
+                    auto_rotate=auto_rotate,
+                    opacity=opacity,
+                    height=height,
+                    cam_v_angle=cam_v_angle,
+                    cam_h_angle=cam_h_angle,
+                    cam_distance=cam_distance,
+                    max_view_distance=max_view_distance,
+                    key='user-upload')
