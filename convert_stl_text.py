@@ -25,18 +25,18 @@ with open(ascii_stl_path, "r") as f:
 
 # STEP 3: Save STL text to CSV (Each line as a new row)
 df = pd.DataFrame(stl_text)  # Convert list of lines to DataFrame
-df.to_csv("stl_files.csv", index=False, header=False)  # Save without index/header
+df.to_csv("JeepModel1.csv", index=False, header=False)  # Save without index/header
 print("STL data saved to CSV!")
 
 
 #Converting back to STL format
 # STEP 4: Read CSV and Convert Back to STL
-df = pd.read_csv("stl_files.csv", header=None)  # Read CSV without headers
-stl_text = "".join(df[0].tolist())  # Join lines back into a single string
+#df = pd.read_csv("JeepModel1.csv", header=None)  # Read CSV without headers
+#stl_text = "".join(df[0].tolist())  # Join lines back into a single string
 
 # STEP 5: Save the reconstructed STL file
-reconstructed_stl_path = "Reconstructed_JeepModel1.stl"
-with open(reconstructed_stl_path, "w") as f:
-    f.write(stl_text)
+#reconstructed_stl_path = "Reconstructed_JeepModel1.stl"
+#with open(reconstructed_stl_path, "w") as f:
+#    f.write(stl_text)
 
 print(f"STL file successfully reconstructed: {reconstructed_stl_path}")
