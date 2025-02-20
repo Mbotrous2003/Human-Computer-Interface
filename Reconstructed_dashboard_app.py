@@ -28,8 +28,8 @@ def load_data():
     engine = create_engine(DATABASE_URL)
     #Load data from each table into pandas DataFrames
     df_jeep_models = pd.read_sql_query('SELECT * FROM public."Jeep_Models";', engine)
-    df_pm_needs = pd.read_sql_query('SELECT * FROM public."PM_Needs";', engine)
-    df_quality_tickets = pd.read_sql_query('SELECT * FROM public."Quality_Tickets";', engine)
+    df_pm_needs = pd.read_sql_query('SELECT * FROM public."PM Needs";', engine)
+    df_quality_tickets = pd.read_sql_query('SELECT * FROM public."Quality Tickets";', engine)
     df_jeepModel1CSV = pd.read_sql_query('SELECT * FROM public."JeepModel1CSV";', engine)
     return (df_jeep_models, df_pm_needs, df_quality_tickets, df_jeepModel1CSV) #Return the dataframes
 #Call function to load the data
