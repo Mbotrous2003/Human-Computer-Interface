@@ -4,6 +4,7 @@
 #!pip install streamlit 
 #!pip install streamlit-aggrid
 #!pip install streamlit_stl
+#!pip install streamlit-pdf-viewer
 
 
 from sqlalchemy import create_engine
@@ -11,6 +12,7 @@ import pandas as pd
 import streamlit as st
 from st_aggrid import AgGrid, GridOptionsBuilder, DataReturnMode, GridUpdateMode
 from streamlit_stl import stl_from_text, stl_from_file
+from streamlit_pdf_viewer import pdf_viewer
  
 
 #Give the page a name
@@ -162,6 +164,10 @@ def display_tab(df_name, title):
                 cam_distance=0,
                 max_view_distance=1000,
                 key='jeepmodel')
+
+        #Show the PDF viewer only for Jeep Model 2
+        if df_name == "df3":
+                pdf_viewer("Jeep Model 2 pdf.pdf", width=1000, height=1000) #https://github.com/lfoppiano/streamlit-pdf-viewer
 
 
 tab_labels = ["Quality Tickets", "Jeep Model 1", "Jeep Model 2", "Jeep Model 3", "Project Management Needs"]
