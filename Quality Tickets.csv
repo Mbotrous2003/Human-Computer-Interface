@@ -1,4 +1,4 @@
-﻿   ,Dealership,Date,Jeep Model_id,Text
+﻿id,Dealership,Date,Model,Text
 1,A,1/1/2022,2,Drivers love the color of this model.
 2,B,1/1/2022,1,Easy to find this model to buy.
 3,A,1/2/2022,1,Drivers hear road noise but not loudly.

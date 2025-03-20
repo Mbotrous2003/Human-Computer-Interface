@@ -4,13 +4,20 @@
 #!pip install streamlit 
 #!pip install streamlit-aggrid
 #!pip install streamlit_stl
+#!pip install streamlit-pdf-viewer
 
 
-from sqlalchemy import create_engine
+
+
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
 import pandas as pd
 import streamlit as st
 from st_aggrid import AgGrid, GridOptionsBuilder, DataReturnMode, GridUpdateMode
-from streamlit_stl import stl_from_text, stl_from_file
+import matplotlib.pyplot as plt
+import plotly.express as px
+# from streamlit_stl import stl_from_text, stl_from_file
+# from streamlit_pdf_viewer import pdf_viewer
  
 
 #Give the page a name
@@ -28,7 +35,7 @@ port = '5433'
  
 # Construct the database URL
 DATABASE_URL = "postgresql://postgres:Marina789@localhost:5433/HCI_requirements"
- 
+engine = create_engine(DATABASE_URL)
 #Connect to PostgreSQL database
 @st.cache_data
 def load_data():
@@ -40,7 +47,7 @@ def load_data():
     df_pm_needs = pd.read_sql_query('SELECT * FROM public."PM Needs";', engine)
     df_quality_tickets = pd.read_sql_query('SELECT * FROM public."Quality Tickets";', engine)
     return (df_jeep_model1, df_jeep_model2, df_jeep_model3, df_pm_needs, df_quality_tickets) #Return the dataframes
-
+    
 #Call function to load the data
 
 df_jeep_model1, df_jeep_model2, df_jeep_model3, df_pm_needs, df_quality_tickets = load_data()
@@ -57,6 +64,7 @@ df5= df_pm_needs
  
 # Create Tabs 
 # tab1, tab2, tab3, tab4, tab5 = st.tabs(["Quality Tickets", "Jeep Model 1", "Jeep Model 2", "Jeep Model 3", "Project Management Needs"])
+
 
 # Initializing state for all my dataframes 
 
@@ -88,26 +96,86 @@ def initialize_data(df_name):
 def trigger_confirm(df_name):
         st.session_state[f"{df_name}_show_confirm"] = True # Show confirmation message
 
+# The section below creates a connection to the database to save changes back to postgreSQL
+     
 def confirm_save(df_name):
-        st.session_state[f"{df_name}_original"] = st.session_state[f"{df_name}_edited"].copy() #Save edits
-        st.session_state[f"{df_name}_show_confirm"] = False #Hide confirmation
-        st.success("Changes saved successfully!")
+    edited_data = st.session_state.get(f"{df_name}_edited")  # Use .get() to avoid errors
+    if edited_data is None or edited_data.empty:
+        st.warning("No changes detected.")
+        return
 
+    with engine.connect() as connection:
+        with connection.begin():  # Use explicit transaction
+            for index, row in edited_data.iterrows():
+                query = text('''
+                    UPDATE "Quality Tickets"
+                    SET "Dealership" = :Dealership, 
+                        "Date" = :Date,
+                        "Model" = :Model,
+                        "Text" = :Text
+                    WHERE id = :id;
+                ''')
+
+                # Convert NaN to None and ensure 'id' is an integer
+                params = {
+                    "Dealership": None if pd.isna(row["Dealership"]) else row["Dealership"],
+                    "Date": None if pd.isna(row["Date"]) else row["Date"],
+                    "Model": None if pd.isna(row["Model"]) else row["Model"],
+                    "Text": None if pd.isna(row["Text"]) else row["Text"],
+                    "id": int(row["id"])  # Ensure 'id' is an integer
+                }
+
+                connection.execute(query, params)  # Execute the update
+
+    st.session_state[f"{df_name}_original"] = edited_data.copy()  # Save edits
+    st.session_state[f"{df_name}_show_confirm"] = False  # Hide confirmation
+    st.success("Changes saved successfully to the database")
 def cancel_save(df_name):
         st.session_state[f"{df_name}_show_confirm"] = False #Hide confirmation
 
-# Functions to display the data editor and save/cancle buttons
+# Functions to display the data editor and save/cancel buttons
 def display_tab(df_name, title):
         initialize_data(df_name) #ensure data state exists
         st.subheader(title)
+        col1, col2 = st.columns([2,1])
 
+        with col1:
         # Editable Dataframe
-        st.session_state[f"{df_name}_edited"] = st.data_editor(
-                st.session_state[f"{df_name}_edited"],
-                num_rows="dynamic",
-                key=f"editor_{df_name}_{st.session_state[f'{df_name}_key']}"
-        )
-        
+                st.session_state[f"{df_name}_edited"] = st.data_editor(
+                        st.session_state[f"{df_name}_edited"],
+                        num_rows="dynamic",
+                        key=f"editor_{df_name}_{st.session_state[f'{df_name}_key']}",
+                        column_config={
+                        "Met requirements based on tickets": st.column_config.CheckboxColumn(
+                                "Requirements met",
+                                help = "Select your **completed** jeep models",
+                                default=False
+                        )
+                        },
+                        hide_index=True,
+                )
+        with col2:
+                if "Met requirements based on tickets" in st.session_state[f"{df_name}_edited"].columns:
+                # Count checked (True) and unchecked (False) values for the "Met requirements based on tickets" column
+                        checked_count = st.session_state[f"{df_name}_edited"]['Met requirements based on tickets'].sum()  # Count checked (True) boxes
+                        unchecked_count = len(st.session_state[f"{df_name}_edited"]) - checked_count  # Count unchecked (False) boxes
+
+                        # Prepare data for pie chart
+                        pie_data = {
+                        "Status": ["Checked", "Unchecked"],
+                        "Count": [checked_count, unchecked_count]
+                        }
+
+                        # Convert to DataFrame for pie chart plotting
+                        pie_df = pd.DataFrame(pie_data)
+
+                        # Create Pie chart
+                        fig = px.pie(pie_df, values='Count', names='Status', title=f"Met Requirements Based on Tickets for {title}")
+                        st.plotly_chart(fig, use_container_width=True)
+                else:
+                        st.warning("The column 'Met requirements based on tickets' was not found in the dataframe.")
+
+       
         # Show confirmation message when saving
         if st.session_state[f"{df_name}_show_confirm"]:
                 st.warning("**Once you click Save, you can NOT go back.**")
@@ -118,16 +186,68 @@ def display_tab(df_name, title):
                         st.button("Cancel", on_click=cancel_save, args=(df_name,), key=f"cancel_{df_name}")
         else:
                 st.button("Save Changes", on_click=trigger_confirm, args=(df_name,), key=f"save_{df_name}")
+
 tab_labels = ["Quality Tickets", "Jeep Model 1", "Jeep Model 2", "Jeep Model 3", "Project Management Needs"]
 
 df_names = ["df1", "df2", "df3", "df4", "df5"]
 
 tabs = st.tabs(tab_labels)
 
-#Display all tabs using a loop 
-for tab, df_name, title in zip(tabs, df_names, tab_labels):
-        with tab:
-                display_tab(df_name, title)
+# #Display all tabs using a loop 
+# for tab, df_name, title in zip(tabs, df_names, tab_labels):
+#         with tab:
+#                 display_tab(df_name, title)
+
+
+#         #Show the STL model only for Jeep Model 1
+#         if df_name == "df2":
+#                 st.subheader("3D Model Viewer")
+#                 #referenced https://github.com/Lucandia/streamlit_stl for library and documentation
+#                 #display STL file
+#                 #create 6 columns for color, material, auto rotation, opacity, height, and STL file
+#                 cols = st.columns(5)
+#                 with cols[0]:
+#                         color = st.color_picker("Pick a color", "#FF9900", key='color_file')
+#                 with cols[1]:
+#                         material = st.selectbox("Select a material", ["material", "flat", "wireframe"], key='material_file')
+#                 with cols[2]:
+#                         st.write('\n'); st.write('\n')
+#                         auto_rotate = st.toggle("Auto rotation", key='auto_rotate_file')
+#                 with cols[3]:
+#                         opacity = st.slider("Opacity", min_value=0.0, max_value=1.0, value=1.0, key='opacity_file')
+#                 with cols[4]:
+#                         height = st.slider("Height", min_value=50, max_value=1000, value=500, key='height_file')
+#                 # camera position can be used to give the user the ability to change the view of the model
+#                 #cols = st.columns(4)
+#                 #with cols[0]:
+#                 #        cam_v_angle = st.number_input("Camera Vertical Angle", value=60, key='cam_v_angle')
+#                 #with cols[1]:
+#                 #        cam_h_angle = st.number_input("Camera Horizontal Angle", value=-90, key='cam_h_angle')
+#                 #with cols[2]:
+#                 #        cam_distance = st.number_input("Camera Distance", value=0, key='cam_distance')
+#                 #with cols[3]:
+#                 #        max_view_distance = st.number_input("Max view distance", min_value=1, value=1000, key='max_view_distance')
+
+#                 #sets "selected_jeep_model" variable as the file path of the selected model.
+#                 stl_from_file(  
+#                 file_path= 'JeepModel1.stl', 
+#                 color=color,
+#                 material=material,
+#                 auto_rotate=auto_rotate,
+#                 opacity=opacity,
+#                 height=height,
+#                 shininess=100,
+#                 cam_v_angle=60,
+#                 cam_h_angle=90,
+#                 cam_distance=0,
+#                 max_view_distance=1000,
+#                 key='jeepmodel')
+
+#         #Show the PDF viewer only for Jeep Model 2
+#         if df_name == "df3":
+#                 pdf_viewer("Jeep Model 2 pdf.pdf", width=1000, height=1000) #https://github.com/lfoppiano/streamlit-pdf-viewer
+
+
 
 # with tab1:
 #     st.subheader("Jeep Model 1")
